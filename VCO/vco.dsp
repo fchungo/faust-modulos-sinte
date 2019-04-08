@@ -2,6 +2,7 @@ import ("stdfaust.lib");
 import ("oscillators.lib");
 import ("filters.lib");
 import ("signals.lib");
+import ("basics.lib");
 
 /*	############
 	 Modulo VCO
