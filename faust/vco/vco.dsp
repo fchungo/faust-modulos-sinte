@@ -1,83 +1,80 @@
 import ("stdfaust.lib");
 
 /*	############
-	 Modulo VCO
+	 VCO module
 	############
 	
-	Entradas:
+	Input:
 		
-		1) x_vco_in_frec1: frecuencia (para modular)
-		2) x_vco_in_frec2: frecuencia (para modular)
-		3) x_vco_in_pw: ancho de pulso (para modular)
+		1) mod_freq1: frequency (for modulation)
+		2) mod_freq2: frecuencia (for modulation)
+		3) mod_pw: pulse width (for modulation)
 		
-	Controles:
+	Control:
 		
-		1) x_vco_att_freq0: atenuador de la modulacion
-		2) x_vco_att_freq1: atenuador de la modulacion
-		3) x_vco_att_pw: atenuador de la modulacion pw
-		4) x_vco_shape: forma de onda
-		5) x_vco_freq: frecuencia
-		6) x_vco_offset: desvío de frecuencia
-		7) x_vco_pw: ancho de pulso
-		8) x_vco_on-off ¿funciona como en Pd?
+		1) mod_attenuator_freq1: modulation attenuator
+		2) mod_attenuator_freq2: modulation attenuator
+		3) vco_att_pw: pw modulation attenuator
+		4) vco_shape: wave shape (sine, tri, saw, rect)
+		5) vco_freq: oscillation frequency
+		6) vco_pw: pulse width
 		
-	Salidas:
+	Output:
 	
-		1) audio: en la API debe ser algo como 'x_vco_out'
+		1) audio: en la API debe ser algo como 'vco_out'
 
 */
 
-// Se utilizan generadores sustractivos mediante el método polyblep
+// Subtractive generation is applied by Se utilizan generadores sustractivos mediante el método polyblep
 // Se aplica un polinomio para frecuencias menores a 500 Hz y otro para frecuencias mayores a 500 Hz
 
 fc = 500;
-// A: aplica el sustractivo para frecuencias < 500 Hz
-// B: aplica el sustractivo para frecuencias > 500 Hz
-A = fc>x_vco_freq;
-B = fc<x_vco_freq;
+// A: applies subtractive for frequencies < 500 Hz
+// B: applies subtractive for frequencies > 500 Hz
+A = fc>vco_freq;
+B = fc<vco_freq;
 
-x_vco_freq = hslider ("freq", 440, 50, 4000, 0.01) : si.smooth (0.999); // Parámetro frecuencia
+vco_freq = hslider ("freq", 440, 50, 4000, 0.01) : si.smooth (0.999); // Frequency control
 
-// #### Entradas ####
-// Números iguales a cero anulan los elementos de la cadena de procesamiento vinculados al compilar a c++
-x_vco_in_frec1 = 0.00001;
-x_vco_in_frec2 = 0.00001;
-x_vco_in_pw = 0.00001;
+// #### Inputs ####
+vco_in_frec1 = 0.00001;
+vco_in_frec2 = 0.00001;
+vco_in_pw = 0.00001;
 
-// #### Signal flow para señales de entrada del VCO ####
+// #### Signal flow for input signals ####
 
-// Modulacion de frecuencia (a partir de input_frec, att_freq y freq)
-x_vco_att_freq0 = hslider ("att_freq0", 0, 0, 100, 1) : si.smooth (0.999); // control att_freq0
-x_vco_att_freq1 = hslider ("att_freq1", 0, 0, 100, 1) : si.smooth (0.999); // control att_freq1
-x_vco_modf = ((0.01 * x_vco_att_freq0 * x_vco_in_frec1) + (0.01 * x_vco_att_freq1 * x_vco_in_frec2)) * 60;
+// Frequency modulation (from vco_frec, mod_freq1 and mod_freq2)
+mod_attenuator_freq1 = hslider ("mod_freq1", 0, 0, 100, 1) : si.smooth (0.999); // control att_freq0
+mod_attenuator_freq2 = hslider ("mod_freq2", 0, 0, 100, 1) : si.smooth (0.999); // control att_freq1
+vco_modf = ((0.01 * mod_attenuator_freq1 * vco_in_frec1) + (0.01 * mod_attenuator_freq2 * vco_in_frec2)) * 60;
 
 
 // Modulacion de amplitud
-x_vco_pw = hslider ("pw", 50, 0, 100, 1) : si.smooth (0.999); // control pw
-x_vco_att_pw = hslider ("att_pw", 0, 0, 100, 1) : si.smooth (0.999); // control att pw
-x_vco_duty = (x_vco_att_pw * 0.01 * x_vco_in_pw * 0.5) + x_vco_pw * 0.01;
+vco_pw = hslider ("pw", 50, 0, 100, 1) : si.smooth (0.999); // control pw
+vco_att_pw = hslider ("att_pw", 0, 0, 100, 1) : si.smooth (0.999); // control att pw
+vco_duty = (vco_att_pw * 0.01 * vco_in_pw * 0.5) + vco_pw * 0.01;
 
-x_vco_gain = hslider ("gain", 0.5, 0, 1, 0.01) : si.smooth (0.999); // Parámetro de ganancia
-x_vco_gate = checkbox ("gate") : si.smooth (0.999); // Parámetro gate (on - off)
+vco_gain = hslider ("gain", 0.5, 0, 1, 0.01) : si.smooth (0.999); // Parámetro de ganancia
+vco_gate = button ("gate") : si.smooth (0.999); // Parámetro gate (on - off)
 
 // Sine - senoidal
 
-out_sine = os.osc(x_vco_freq + x_vco_modf);
+out_sine = os.osc(vco_freq + vco_modf);
 
 // Sawtooth - diente de sierra
 
-out1 = (os.saw2(x_vco_freq + x_vco_modf)*A);
-out2 = (os.saw5(x_vco_freq + x_vco_modf)*B);
+out1 = (os.saw2(vco_freq + vco_modf)*A);
+out2 = (os.saw5(vco_freq + vco_modf)*B);
 
 // Triangle - triangular
 
-out5 = (os.triangleN(2, x_vco_freq + x_vco_modf)*A);
-out6 = (os.triangleN(5, x_vco_freq + x_vco_modf)*B);
+out5 = (os.triangleN(2, vco_freq + vco_modf)*A);
+out6 = (os.triangleN(5, vco_freq + vco_modf)*B);
 
 // Pulse - rectangular
 
-out7 = (os.pulsetrainN(2, x_vco_freq + x_vco_modf, x_vco_duty))*A;
-out8 = (os.pulsetrainN(5, x_vco_freq + x_vco_modf, x_vco_duty))*B;
+out7 = (os.pulsetrainN(2, vco_freq + vco_modf, vco_duty))*A;
+out8 = (os.pulsetrainN(5, vco_freq + vco_modf, vco_duty))*B;
 
 // Salidas
 out_sawtooth = out1+out2;
@@ -85,9 +82,9 @@ out_sawtooth_inv = -out_sawtooth;
 out_triangle = out5+out6;
 out_square = out7+out8;
 
-x_vco_shape = vslider("[0] signal [style:menu{'Sine':0; 'Sawtooth':1; 'Sawtooth inv':2; 'Triangle':3; 'Square':4}]", 0, 0, 4, 1);
+vco_shape = vslider("[0] signal [style:menu{'Sine':0; 'Sawtooth':1; 'Sawtooth inv':2; 'Triangle':3; 'Square':4}]", 0, 0, 4, 1);
 
-signal= out_sine, out_sawtooth, out_sawtooth_inv, out_triangle, out_square: ba.selectn(5, x_vco_shape) : _;
+signal= out_sine, out_sawtooth, out_sawtooth_inv, out_triangle, out_square: ba.selectn(5, vco_shape) : _;
 
-process = vgroup ("output", signal*x_vco_gain*x_vco_gate);
+process = vgroup ("output", signal * vco_gain * vco_gate);
 
