@@ -1,4 +1,5 @@
 import ("stdfaust.lib");
+import ("lfo.dsp");
 
 /*	############
 	 VCO module
@@ -36,8 +37,14 @@ B = fc<vco_freq;
 
 vco_freq = hslider ("freq", 440, 50, 4000, 0.01) : si.smooth (0.999); // Frequency control
 
+// Modulation 1 mode
+vco_modulation1 = checkbox("LFO AMP MOD") : si.smooth (0.999);
+
+// Modulation 2 mode
+vco_modulation2 = checkbox("LFO FREQ MOD") : si.smooth (0.999);
+
 // #### Inputs ####
-vco_in_frec1 = 0.00001;
+vco_in_frec1 = lfo_out * vco_modulation2;
 vco_in_frec2 = 0.00001;
 vco_in_pw = 0.00001;
 
@@ -47,7 +54,6 @@ vco_in_pw = 0.00001;
 mod_attenuator_freq1 = hslider ("mod_freq1", 0, 0, 100, 1) : si.smooth (0.999); // control att_freq0
 mod_attenuator_freq2 = hslider ("mod_freq2", 0, 0, 100, 1) : si.smooth (0.999); // control att_freq1
 vco_modf = ((0.01 * mod_attenuator_freq1 * vco_in_frec1) + (0.01 * mod_attenuator_freq2 * vco_in_frec2)) * 60;
-
 
 // Modulacion de amplitud
 vco_pw = hslider ("pw", 50, 0, 100, 1) : si.smooth (0.999); // control pw
@@ -59,7 +65,7 @@ vco_gate = button ("gate") : si.smooth (0.999); // Parámetro gate (on - off)
 
 // Sine - senoidal
 
-out_sine = os.osc(vco_freq + vco_modf);
+out_sine = (0.5 * vco_modf +1) * os.osc(vco_freq + vco_modf);
 
 // Sawtooth - diente de sierra
 
@@ -85,6 +91,7 @@ out_square = out7+out8;
 vco_shape = vslider("[0] signal [style:menu{'Sine':0; 'Sawtooth':1; 'Sawtooth inv':2; 'Triangle':3; 'Square':4}]", 0, 0, 4, 1);
 
 signal= out_sine, out_sawtooth, out_sawtooth_inv, out_triangle, out_square: ba.selectn(5, vco_shape) : _;
+
 
 process = vgroup ("output", signal * vco_gain * vco_gate);
 

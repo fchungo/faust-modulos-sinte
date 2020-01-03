@@ -1,7 +1,3 @@
-# Synth3F - Modulos de Faust 
+# The HobbySynth
 
-Modulos para el sintetizador de la UNTREF
-
-Link del proyecto:
-
-https://github.com/UntrefSintetizador/untref-sintetizador
+This project is a personal side-project of the [Synth3F](https://github.com/UntrefSintetizador/untref-sintetizador). The objective is to explore the Faust programming languaje as also to create a simple synthesizer interface.
